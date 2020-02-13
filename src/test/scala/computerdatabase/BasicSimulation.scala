@@ -115,7 +115,7 @@ class BasicSimulation extends Simulation {
 //
 //}
 
-  
+
 // Тестирование стабильности
   setUp(
     scenarioObserver.inject(constantConcurrentUsers(1000) during (12 hours)),
