@@ -30,9 +30,11 @@ class BasicSimulation extends Simulation {
 
   object Go {
     val go = {
+      http("Request").get("http://computer-database.gatling.io")
+        .check(status.not(404), status.not(500))
       exec(http("Go")
         .get("/computers"))
-        .pause(3)
+        .pause(5 second)
     }
   }
 
@@ -41,30 +43,26 @@ class BasicSimulation extends Simulation {
 
   object View {
 
-    val feederNum = csv("numbers.csv").eager.random
-
 
     val view = {
-      feed(feederNum)
+
       exec(http("View")
-        .get(s"/computers/${feederNum}"))
-        .pause(3)
+        .get("/computers").check(regex("""<td><a href="/computers/(.*)">""").find.saveAs("numberPC")))
+        .pause(5 second)
         .exec(http("View")
-          .get("/computers"))
-        .pause(3)
+          .get("/computers/${numberPC}"))
+        .pause(5 second)
     }
   }
 
   // Add
   object Add {
 
-//    val feederPC = csv("computers.csv").eager.random
 
     val add = {
       exec(http("Add")
         .get("/computers/new"))
-        .pause(3)
-//      feed(feederPC)
+        .pause(5 second)
         .exec(http("Add")
           .post("/computers")
           .headers(headers)
@@ -72,52 +70,59 @@ class BasicSimulation extends Simulation {
           .formParam("introduced", "")
           .formParam("discontinued", "")
           .formParam("company", {"2"}))
-        .pause(3)
+        .pause(5 second)
 
     }
   }
 
-  // Delete
-  object Delete {
-
-    val delete = repeat(5, "n"){
-
-      exec(http("Delete")
-        .get("/computers/?p=${n}"))
-        .pause(3)
-        .exec(http("Delete")
-          .post("/computers/?p={n}/delete")
-          .headers(headers))
-
-    }
-  }
 
   // Delete
   object ViewDelete {
 
-    val viewDelete = repeat(5, "n"){
+    val viewDelete = {
+
 
       exec(http("ViewDelete")
-        .get("/computers/?p=${n}"))
-        .pause(3)
-      exec(http("ViewDelete")
-        .get("/computers/?p=${n}"))
-        .pause(3)
+        .get("/computers").check(regex("""<td><a href="/computers/(.*)">""").find.saveAs("numberPC")))
+        .pause(5 second)
         .exec(http("ViewDelete")
-          .post("/computers/?p={n}/delete")
-          .headers(headers))
+          .get("/computers/${numberPC}"))
+          .pause(5 second)
+        .exec(http("ViewDelete")
+          .post("/computers/${numberPC}/delete"))
+
+
 
     }
   }
 
 
+//Поиск максимальной производительности
 
+//  setUp(
+//    scenarioObserver.inject(rampUsers(600) during (60 minute)),
+//    scenarioCreator.inject(rampUsers(600) during (60 minute)),
+//    scenarioDestroyer.inject(rampUsers(600) during (60 minute)).throttle(holdFor(20 minute))
+//    ,
+//    scenarioObserver.inject(rampUsers(850) during (40 minute)),
+//    scenarioCreator.inject(rampUsers(850) during (40 minute)),
+//    scenarioDestroyer.inject(rampUsers(850) during (40 minute)).throttle(holdFor(20 minute))
+//    ,
+//    scenarioObserver.inject(rampUsers(1100) during (20 minute)),
+//    scenarioCreator.inject(rampUsers(1100) during (20 minute)),
+//    scenarioDestroyer.inject(rampUsers(1100) during (20 minute)))
+//    .protocols(httpProtocol)
+//
+//}
 
+  
+// Тестирование стабильности
   setUp(
-    scenarioObserver.inject(constantConcurrentUsers(500) during (30 minute)),
-    scenarioCreator.inject(constantConcurrentUsers(500) during (30 minute)),
-    scenarioDestroyer.inject(constantConcurrentUsers(10) during (30 minute)))
-      .protocols(httpProtocol)
+    scenarioObserver.inject(constantConcurrentUsers(1000) during (12 hours)),
+    scenarioCreator.inject(constantConcurrentUsers(1000) during (12 hours)),
+    scenarioDestroyer.inject(constantConcurrentUsers(1000) during (12 hours)))
+    .protocols(httpProtocol)
+
 }
 
 
